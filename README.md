@@ -1,1 +1,1 @@
-# DMDWavemeter
+# DMDWavemeterThis package uses a DMD and a low-cost CCD or CMOS camera as an optical wavemeter.
