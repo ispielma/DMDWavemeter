@@ -1,0 +1,31 @@
+axes.titlesize : 9
+axes.labelsize : 8
+xtick.labelsize : 8
+ytick.labelsize : 8
+legend.fontsize : 8
+
+pdf.fonttype : 42
+font.family : serif
+font.serif : Computer Modern Roman
+text.usetex : True
+text.latex.preamble : \usepackage{amsmath}
+
+axes.linewidth : 0.75
+
+lines.linewidth : 0.75
+lines.markersize : 3.0
+lines.markeredgewidth : 0.5
+
+xtick.major.size : 3
+xtick.minor.size : 2
+xtick.major.width : 0.75
+xtick.minor.width : 0.75
+xtick.direction : in
+
+ytick.major.size : 3
+ytick.minor.size : 2
+ytick.major.width : 0.75
+ytick.minor.width : 0.75
+ytick.direction : in
+
+axes.formatter.limits : -3, 3
