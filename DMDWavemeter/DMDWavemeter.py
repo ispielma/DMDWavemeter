@@ -73,7 +73,7 @@ class LightCrafterWorker():
                     }
     # Packets must be in the form [packet type (1 bit), command (2), flags (1), payload length (2), data (N), checksum (1)]
     
-    def init(self, host='192.168.1.100', port=21845):
+    def __init__(self, host='192.168.1.100', port=21845):
 
         self.host=host
         self.port = int(port)
@@ -318,20 +318,30 @@ if __name__ == "__main__":
     
     pyplot.style.use(path + '/matplotlibrc')
     
-    # DMD =  LightCrafterWorker()
-    # Camera= IMAQdx_Camera(sn)
+    DMD =  LightCrafterWorker(host='192.168.1.100')
+    Camera= IMAQdx_Camera(0x30531DC20D)
     
-    pattern = np.zeros((HEIGHT, WIDTH))
+    SCALE = 0.5
+    
+    pattern = np.random.rand(HEIGHT, WIDTH)
+    ones = pattern > SCALE
+    pattern.fill(0)
+    pattern[ones] = 1
+    # pattern = np.zeros((HEIGHT, WIDTH))
+    # pattern = np.ones((HEIGHT, WIDTH))
+    
+    pattern = pattern.round()
     pattern_bpm = arr_to_bmp(pattern)
+    pattern_bpm = base64.b64encode(pattern_bpm)
     
-    # DMD.program_manual(pattern_bpm)
+    DMD.program_manual(pattern_bpm)
     
     time.sleep(1)
-    # image = Camera.snap()
-    image = np.zeros((HEIGHT, WIDTH))
+    image = Camera.snap()
+
     
-    # DMD.shutdown()
-    # Camera.close()
+    DMD.shutdown()
+    Camera.close()
 
     fig = pyplot.figure(figsize=(12,6))
     gs = fig.add_gridspec(1, 2)
