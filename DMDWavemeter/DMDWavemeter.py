@@ -72,7 +72,13 @@ class LightCrafterWorker():
                     'pattern': b'\x04',
                     }
     # Packets must be in the form [packet type (1 bit), command (2), flags (1), payload length (2), data (N), checksum (1)]
+
+    def __enter__(self):
+        return self
     
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.shutdown()
+
     def __init__(self, host='192.168.1.100', port=21845):
 
         self.host=host
@@ -187,6 +193,13 @@ import nivision as nv
 _monkeypatch_imaqdispose()
 
 class IMAQdx_Camera(object):
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.close()
+    
     def __init__(self, serial_number):
 
 
@@ -318,15 +331,14 @@ if __name__ == "__main__":
     
     pyplot.style.use(path + '/matplotlibrc')
     
-    DMD =  LightCrafterWorker(host='192.168.1.100')
-    Camera= IMAQdx_Camera(0x30531DC20D)
-    
-    SCALE = 0.5
+    SCALE = 0.0
     
     pattern = np.random.rand(HEIGHT, WIDTH)
     ones = pattern > SCALE
     pattern.fill(0)
     pattern[ones] = 1
+    pattern[:,::4] = 0
+    pattern[::4,:] = 0
     # pattern = np.zeros((HEIGHT, WIDTH))
     # pattern = np.ones((HEIGHT, WIDTH))
     
@@ -334,14 +346,15 @@ if __name__ == "__main__":
     pattern_bpm = arr_to_bmp(pattern)
     pattern_bpm = base64.b64encode(pattern_bpm)
     
-    DMD.program_manual(pattern_bpm)
+    with LightCrafterWorker(host='192.168.1.100') as DMD:
+        DMD.program_manual(pattern_bpm)
     
     time.sleep(1)
-    image = Camera.snap()
-
     
-    DMD.shutdown()
-    Camera.close()
+    with IMAQdx_Camera(0x30531DC20D) as Camera:
+        image = Camera.snap()
+
+  
 
     fig = pyplot.figure(figsize=(12,6))
     gs = fig.add_gridspec(1, 2)
