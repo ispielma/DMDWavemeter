@@ -8,13 +8,15 @@ Demonstration of wavemeter
 """
 import numpy as np
 import time
-
-from DMDWavemeter import WaveMeter
+import h5py
 import os
 path = os.path.realpath(__file__)
 path, _ = os.path.split(path)
 import matplotlib.pyplot as pyplot
 pyplot.style.use(path + '/matplotlibrc')
+
+from DMDWavemeter import WaveMeter
+
 
 attributes = {
     'AcquisitionAttributes::AdvancedEthernet::Controller::DestinationMode': 'Unicast',
@@ -152,6 +154,8 @@ with WaveMeter(LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D) as 
     image = Wave.Camera.snap()
     attributes = Wave.Camera.get_attributes('advanced', writeable_only=True)
   
+with h5py.File('demo.h5', "a") as file:
+    file.create_dataset("image", data=image)
 
 fig = pyplot.figure(figsize=(12,6))
 gs = fig.add_gridspec(1, 2)
