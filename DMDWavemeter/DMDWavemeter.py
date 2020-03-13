@@ -9,31 +9,34 @@ results containing information about the optical wavelength.
 """
 
 # COMMON IMPORTS
-import base64
 import time
 import struct
 import PIL.Image
 import numpy as np
 import io
 
-import socket
-
-def arr_to_bmp(arr):
-    """Convert array to 1 bit BMP, white wherever the array is nonzero, and return a
-    bytestring of the BMP data"""
-    binary_arr = 255 * (arr != 0).astype(np.uint8)
-    im = PIL.Image.fromarray(binary_arr, mode='L').convert('1')
-    f = io.BytesIO()
-    im.save(f, "BMP")
-    return f.getvalue()
-
-
-WIDTH = 608
-HEIGHT = 684
-BLANK_BMP = arr_to_bmp(np.zeros((HEIGHT, WIDTH)))
-       
+import socket    
         
 class LightCrafterWorker():
+
+    #
+    # Physical properties
+    #
+
+    
+    WIDTH = 608
+    HEIGHT = 684
+    
+    BLANK_BMP = np.zeros((HEIGHT, WIDTH))
+    INDICES = np.meshgrid(np.arange(HEIGHT), np.arange(WIDTH), indexing='ij')
+    XY_COORDS_ROT = (( 2*INDICES[1]+INDICES[0] + INDICES[0]%2)/2, 
+                     (-2*INDICES[1]+INDICES[0] - INDICES[0]%2)/2 )
+    XY_COORDS = ((XY_COORDS_ROT[0]+XY_COORDS_ROT[1])/np.sqrt(2), (XY_COORDS_ROT[1]-XY_COORDS_ROT[0])/np.sqrt(2))
+    
+    #
+    # Command language
+    #
+    
     command = {'version' :             b'\x01\x00',
                 'display_mode':         b'\x01\x01',
                 'static_image':         b'\x01\x05',
@@ -88,11 +91,15 @@ class LightCrafterWorker():
         
         # Initialise it to a static image display
         self.send(self.send_packet_type['write'], self.command['display_mode'], self.display_mode['static'])
-        
-        # self.program_manual({"None" : base64.b64encode(blank_bmp)})
-        
-        
-        
+    
+    def _arr_to_bmp(self, arr):
+        """Convert array to 1 bit BMP, white wherever the array is nonzero, and return a
+        bytestring of the BMP data"""
+        binary_arr = 255 * (arr != 0).astype(np.uint8)
+        im = PIL.Image.fromarray(binary_arr, mode='L').convert('1')
+        f = io.BytesIO()
+        im.save(f, "BMP")
+        return f.getvalue()
     
     def send(self, type, command, data):
         packet = b''.join([type,command,self.flag['complete'],struct.pack('<H',len(data)),data])
@@ -146,17 +153,21 @@ class LightCrafterWorker():
     
     
     def program_manual(self, data):
-        
-        data = base64.b64decode(data)
-        
-        # Replace empty data with the black picture
-        if not data:
-            data = BLANK_BMP
+        """
+        Parameters
+        ----------
+        data : np.array or bitmap
+            DESCRIPTION.
+        """
+            
         ## Check to see if it's a BMP
-        
-        
         if data[0:2] != b"BM":
-                raise Exception('Error loading image: Image does not appear to be in bmp format (Initial bits are %s)'%data[0:2])
+            
+            if data.shape == (self.HEIGHT, self.WIDTH):
+                data = np.round(np.clip(data, 0, 1))
+                data = self._arr_to_bmp(data)
+            else:
+                raise Exception('Error loading image: Image in bmp format, and uable to convert to BMP of correct size')
         
         self.send(self.send_packet_type['write'], self.command['display_mode'], self.display_mode['static'])
         self.send(self.send_packet_type['write'], self.command['static_image'], data)
@@ -164,6 +175,23 @@ class LightCrafterWorker():
         
     def shutdown(self):
         self.sock.close()
+        
+    #
+    # Utility features
+    # 
+
+    def RandomPattern(self, scale=0.5):
+        pattern = np.random.rand(self.HEIGHT, self.WIDTH)
+        
+        return self.ToBinary(pattern, scale=scale)
+    
+    def ToBinary(self, pattern, scale=0.5):
+        ones = pattern > scale
+        pattern.fill(0)
+        pattern[ones] = 1
+        pattern = pattern.round()
+        
+        return pattern        
 
 def _monkeypatch_imaqdispose():
     """Monkeypatch a fix to a memory leak bug in pynivision. The pynivision project is
@@ -322,6 +350,7 @@ class IMAQdx_Camera(object):
         nv.IMAQdxCloseCamera(self.imaqdx)
 
 
+
 # Demonstrate field propogation
 if __name__ == "__main__":
     import os
@@ -330,24 +359,15 @@ if __name__ == "__main__":
     import matplotlib.pyplot as pyplot
     
     pyplot.style.use(path + '/matplotlibrc')
-    
-    SCALE = 0.0
-    
-    pattern = np.random.rand(HEIGHT, WIDTH)
-    ones = pattern > SCALE
-    pattern.fill(0)
-    pattern[ones] = 1
-    pattern[:,::4] = 0
-    pattern[::4,:] = 0
-    # pattern = np.zeros((HEIGHT, WIDTH))
-    # pattern = np.ones((HEIGHT, WIDTH))
-    
-    pattern = pattern.round()
-    pattern_bpm = arr_to_bmp(pattern)
-    pattern_bpm = base64.b64encode(pattern_bpm)
+
     
     with LightCrafterWorker(host='192.168.1.100') as DMD:
-        DMD.program_manual(pattern_bpm)
+        coords = DMD.XY_COORDS_ROT
+        
+        pattern = (1+np.cos(np.pi*coords[0])) / 2
+        pattern += (1+np.cos(np.pi*coords[1])) / 2
+        pattern /=2
+        DMD.program_manual(pattern)
     
     time.sleep(1)
     
