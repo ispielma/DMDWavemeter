@@ -283,6 +283,14 @@ class IMAQdx_Camera(object):
             attributes.append(a.Name.decode('utf8'))
         return sorted(attributes)
 
+    def get_attributes(self, visibility_level, writeable_only=True):
+        """Return a dict of all attribute names of readable attributes, for the given
+        visibility level. Optionally return only writeable attributes"""
+        
+        attributes = self.get_attribute_names(visibility_level, writeable_only=writeable_only)
+        
+        return {k: self.get_attribute(k) for k in attributes}
+        
     def get_attribute(self, name):
         """Return current value of attribute of the given name"""
         try:
@@ -349,7 +357,18 @@ class IMAQdx_Camera(object):
     def close(self):
         nv.IMAQdxCloseCamera(self.imaqdx)
 
-
+class WaveMeter():
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.DMD.shutdown()
+        self.Camera.close()
+    
+    def __init__(self, LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D):
+        
+        self.DMD = LightCrafterWorker(host=LightCrafterHost)
+        self.Camera = IMAQdx_Camera(IMAQdx_serial)
 
 # Demonstrate field propogation
 if __name__ == "__main__":
@@ -360,20 +379,18 @@ if __name__ == "__main__":
     
     pyplot.style.use(path + '/matplotlibrc')
 
-    
-    with LightCrafterWorker(host='192.168.1.100') as DMD:
-        coords = DMD.XY_COORDS_ROT
+    with WaveMeter(LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D) as Wave:
+        coords = Wave.DMD.XY_COORDS_ROT
         
         pattern = (1+np.cos(np.pi*coords[0])) / 2
         pattern += (1+np.cos(np.pi*coords[1])) / 2
         pattern /=2
-        DMD.program_manual(pattern)
+        Wave.DMD.program_manual(pattern)
     
-    time.sleep(1)
+        time.sleep(1)
     
-    with IMAQdx_Camera(0x30531DC20D) as Camera:
-        image = Camera.snap()
-
+        image = Wave.Camera.snap()
+        attributes = Wave.Camera.get_attributes('advanced', writeable_only=True)
   
 
     fig = pyplot.figure(figsize=(12,6))
