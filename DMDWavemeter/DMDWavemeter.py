@@ -27,7 +27,7 @@ class LightCrafterWorker():
     WIDTH = 608
     HEIGHT = 684
     
-    BLANK_BMP = np.zeros((HEIGHT, WIDTH))
+    BLANK = np.zeros((HEIGHT, WIDTH))
     INDICES = np.meshgrid(np.arange(HEIGHT), np.arange(WIDTH), indexing='ij')
     XY_COORDS_ROT = (( 2*INDICES[1]+INDICES[0] + INDICES[0]%2)/2, 
                      (-2*INDICES[1]+INDICES[0] - INDICES[0]%2)/2 )

@@ -139,30 +139,78 @@ attributes = {
 }
 
 
+data = {}
 with WaveMeter(LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D) as Wave:
     Wave.Camera.set_attributes(attributes)
     
     coords = Wave.DMD.XY_COORDS_ROT
+
+    #
+    # Diagional +4a, -4a
+    #
+
+    pattern = (1+np.cos(0.5*np.pi*coords[0])) / 2
+    pattern += (1+np.cos(0.5*np.pi*coords[1])) / 2
+    pattern /=2
+    Wave.DMD.program_manual(pattern)
+
+    time.sleep(0.1)
+
+    data['4a_4a'] = Wave.Camera.snap()
+
+    #
+    # Diagional +2a, -2a
+    #    
 
     pattern = (1+np.cos(np.pi*coords[0])) / 2
     pattern += (1+np.cos(np.pi*coords[1])) / 2
     pattern /=2
     Wave.DMD.program_manual(pattern)
 
-    time.sleep(1)
+    time.sleep(0.1)
 
-    image = Wave.Camera.snap()
-    attributes = Wave.Camera.get_attributes('advanced', writeable_only=True)
+    data['2a_2a'] = Wave.Camera.snap()
+
+    #
+    # Ones
+    #    
+
+    pattern = np.ones_like(coords[1])
+    Wave.DMD.program_manual(pattern)
+
+    time.sleep(0.1)
+
+    data['ones'] = Wave.Camera.snap()
+
+    #
+    # Zeros
+    #    
+
+    pattern = np.zeros_like(coords[1])
+    Wave.DMD.program_manual(pattern)
+
+    time.sleep(0.1)
+
+    data['zeros'] = Wave.Camera.snap()
   
 with h5py.File('demo.h5', "w") as file:
-     file.create_dataset("image", data=image)
+     file.create_dataset("4a_4a", data=data['4a_4a'])
+     file.create_dataset("2a_2a", data=data['2a_2a'])
+     file.create_dataset("ones", data=data['ones'])
+     file.create_dataset("zeros", data=data['zeros'])
 
-fig = pyplot.figure(figsize=(12,6))
-gs = fig.add_gridspec(1, 2)
+fig = pyplot.figure(figsize=(12,12))
+gs = fig.add_gridspec(2, 2)
 gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.15, hspace=0.5, wspace = 0.35)  
 
 ax = fig.add_subplot(gs[0,0])
-ax.imshow(image)
+ax.imshow(data['4a_4a'])
 
 ax = fig.add_subplot(gs[0,1])
-ax.imshow(pattern)
+ax.imshow(data['2a_2a'])
+
+ax = fig.add_subplot(gs[1,0])
+ax.imshow(data['ones'])
+
+ax = fig.add_subplot(gs[1,1])
+ax.imshow(data['zeros'])

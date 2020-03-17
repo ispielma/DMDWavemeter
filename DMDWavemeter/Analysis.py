@@ -9,6 +9,7 @@ typical data.
 """
 
 import numpy as np
+import astropy.convolution
 import scipy.signal
 import h5py
 import lmfit
@@ -16,15 +17,30 @@ import lmfit
 def gaussian(x, amp, cen, wid, off):
     return amp * np.exp(-(x-cen)**2 / wid**2) + off
 
+kernel = astropy.convolution.Gaussian2DKernel(x_stddev=50)
+
 gmodel = lmfit.Model(gaussian)
 
 
 
 
-def QuickProcess(FileName):
+def QuickProcess(FileName, ImageMax=4095):
+    """
+    ImageMax defines what consititutes saturation
+    """
 
     with h5py.File(FileName, "a") as file:
         image = file["image"][:]
+    
+    #
+    # High pass filter
+    # 
+    
+    
+    
+    image_conv = astropy.convolution.convolve_fft(image, kernel)
+    image = image-image_conv
+
     
     # 100 mm focal lenght lens
     f = 0.1
@@ -54,7 +70,7 @@ def QuickProcess(FileName):
     
     Y_peaks, stats = scipy.signal.find_peaks(Y_Slice, 
                                            height=Y_Slice.max()/5,
-                                           width=10)
+                                           width=1)
     
     #
     # The peak closest to zero should be from the overall pixel structure
@@ -80,7 +96,7 @@ def QuickProcess(FileName):
     # Do an X slice along the center discovered from the peak
     #
     
-    width = 256
+    width = 32
     position = y_0_index
     CentralSlice = image[:][position-width:position+width]
     y_angle_central = y_angle[position-width:position+width]
