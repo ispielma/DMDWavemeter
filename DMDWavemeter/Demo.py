@@ -62,8 +62,8 @@ attributes = {
     'CameraAttributes::AcquisitionTrigger::AcquisitionStatusSelector': 'Frame Trigger Wait',
     'CameraAttributes::AcquisitionTrigger::ExposureAuto': 'Off',
     'CameraAttributes::AcquisitionTrigger::ExposureMode': 'Timed',
-    'CameraAttributes::AcquisitionTrigger::ExposureTimeAbs': 40.0,
-    'CameraAttributes::AcquisitionTrigger::ExposureTimeRaw': 40,
+    'CameraAttributes::AcquisitionTrigger::ExposureTimeAbs': 25.0,
+    'CameraAttributes::AcquisitionTrigger::ExposureTimeRaw': 25,
     'CameraAttributes::AcquisitionTrigger::TriggerActivation': 'Rising Edge',
     'CameraAttributes::AcquisitionTrigger::TriggerDelayAbs': 0.0,
     'CameraAttributes::AcquisitionTrigger::TriggerMode': 'Off',
@@ -90,7 +90,7 @@ attributes = {
     'CameraAttributes::AutoFunctions::AutoFunctionProfile': 'Gain at minimum',
     'CameraAttributes::AutoFunctions::AutoGainRawLowerLimit': 36,
     'CameraAttributes::AutoFunctions::AutoGainRawUpperLimit': 512,
-    'CameraAttributes::AutoFunctions::AutoTargetValue': 128,
+    'CameraAttributes::AutoFunctions::AutoTargetValue': 2048,
     'CameraAttributes::AutoFunctions::GrayValueAdjustmentDampingAbs': 0.68359375,
     'CameraAttributes::AutoFunctions::GrayValueAdjustmentDampingRaw': 700,
     'CameraAttributes::ChunkDataStreams::ChunkModeActive': 0,
@@ -108,7 +108,7 @@ attributes = {
     'CameraAttributes::DigitalIO::UserOutputValueAll': 0,
     'CameraAttributes::EventsGeneration::EventNotification': 'Notification Off',
     'CameraAttributes::EventsGeneration::EventSelector': 'Exposure End',
-    'CameraAttributes::ImageFormat::PixelFormat': 'Mono 8',
+    'CameraAttributes::ImageFormat::PixelFormat': 'Mono 12',
     'CameraAttributes::ImageFormat::ReverseX': 0,
     'CameraAttributes::ImageFormat::ReverseY': 0,
     'CameraAttributes::ImageFormat::TestImageSelector': 'Test Image Off',
@@ -132,7 +132,7 @@ attributes = {
     'CameraAttributes::TimerControls::TimerTriggerActivation': 'Rising Edge',
     'CameraAttributes::TimerControls::TimerTriggerSource': 'Exposure Active',
     'CameraAttributes::TransportLayer::GevSCBWR': 10,
-    'CameraAttributes::TransportLayer::GevSCBWRA': 10,
+    'CameraAttributes::TransportLayer::GevSCBWRA': 2,
     'CameraAttributes::TransportLayer::GevSCFTD': 0,
     'CameraAttributes::UserSets::DefaultSetSelector': 'Standard',
     'CameraAttributes::UserSets::UserSetSelector': 'Default Configuration Set'
@@ -154,8 +154,8 @@ with WaveMeter(LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D) as 
     image = Wave.Camera.snap()
     attributes = Wave.Camera.get_attributes('advanced', writeable_only=True)
   
-with h5py.File('demo.h5', "a") as file:
-    file.create_dataset("image", data=image)
+with h5py.File('demo.h5', "w") as file:
+     file.create_dataset("image", data=image)
 
 fig = pyplot.figure(figsize=(12,6))
 gs = fig.add_gridspec(1, 2)
