@@ -17,23 +17,27 @@ class Camera(Camera_Generic.Camera):
         
         # Find the camera:
         print("Finding camera...")
-        for cam in pylon.TlFactory.GetInstance().EnumerateDevices():
+        Tl_instance = pylon.TlFactory.GetInstance()
+        for cam in Tl_instance.EnumerateDevices():
             sn = cam.GetSerialNumber()
             print("{0:} {1:x} {2:x}".format(sn, int(sn), serial_number))
-            if serial_number == sn:
-                self.camera = cam
+            if serial_number == int(sn):
+                self.camera = Tl_instance.CreateDevice(cam)
+                
                 break
         else:
             msg = f"No connected camera with serial number {serial_number:X} found"
             raise Exception(msg)
         # Connect to the camera:
         print("Connecting to camera...")
-        # self.imaqdx = nv.IMAQdxOpenCamera(
-        #    self.camera.InterfaceName, nv.IMAQdxCameraControlModeController
-        #)
+        self.pylon_camera = pylon.InstantCamera(self.camera)
+        self.pylon_camera.Open()
         
         # Keep an img attribute so we don't have to create it every time
         # self._img = nv.imaqCreateImage(nv.IMAQ_IMAGE_U16)
+
+    def close(self):
+        self.pylon_camera.Close()
 
 # Demonstrate field propogation
 if __name__ == "__main__":
@@ -44,7 +48,8 @@ if __name__ == "__main__":
     
     pyplot.style.use(path + '/matplotlibrc')
 
-    with Camera(0x30531DC20D) as cam:
+    with Camera(0x14eef0d) as cam:
+        cam.camera.GetName()
         pass
         
 
