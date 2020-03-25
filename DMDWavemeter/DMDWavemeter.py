@@ -13,6 +13,7 @@ import time
 import struct
 import PIL.Image
 import numpy as np
+import h5py
 import io
 import socket    
 from Camera_Pylon import Camera
@@ -160,14 +161,11 @@ class LightCrafterWorker():
             DESCRIPTION.
         """
             
-        ## Check to see if it's a BMP
-        if data[0:2] != b"BM":
-            
-            if data.shape == (self.HEIGHT, self.WIDTH):
-                data = np.round(np.clip(data, 0, 1))
-                data = self._arr_to_bmp(data)
-            else:
-                raise Exception('Error loading image: Image in bmp format, and uable to convert to BMP of correct size')
+        if data.shape == (self.HEIGHT, self.WIDTH):
+            data = np.round(np.clip(data, 0, 1))
+            data = self._arr_to_bmp(data)
+        else:
+            raise Exception('Error loading image: unable to convert to BMP of correct size')
         
         self.send(self.send_packet_type['write'], self.command['display_mode'], self.display_mode['static'])
         self.send(self.send_packet_type['write'], self.command['static_image'], data)
@@ -225,6 +223,40 @@ class WaveMeter():
         self.DMD = LightCrafterWorker(host=LightCrafterHost)
         self.Camera = Camera(Camera_serial)
 
+    def AcquireStandardFrame(self):
+        """
+        Configure the DMD for a standard acquisition and grab a frame.
+
+        Returns
+        -------
+        None.
+
+        """
+
+        self.DMD.program_manual(self.DMD.GridPattern())
+        time.sleep(0.1)
+        self.StandardFrame = Wave.Camera.snap()
+        
+        return self.StandardFrame
+
+    def SaveAll(self, filename):
+        """
+        Sdaves the current full frame into an h5 file
+
+        Parameters
+        ----------
+        filename : string
+            where to save the file.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        with h5py.File('demo.h5', "w") as file:
+             file.create_dataset("StandardFrame", data=self.StandardFrame)
+
 # Sample execution of wavemeter
 if __name__ == "__main__":
     import os
@@ -238,11 +270,9 @@ if __name__ == "__main__":
     
     with WaveMeter(LightCrafterHost='192.168.1.100', Camera_serial=Camera_serial) as Wave:        
         
-        Wave.DMD.program_manual(Wave.DMD.GridPattern())
-    
-        time.sleep(1)
-    
-        image = Wave.Camera.snap()  
+        image = Wave.AcquireStandardFrame()
+        Wave.SaveAll('demo.h5')
+        
         
 
     fig = pyplot.figure(figsize=(12,6))
