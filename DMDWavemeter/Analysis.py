@@ -10,6 +10,7 @@ typical data.
 
 import numpy as np
 import astropy.convolution
+import skimage.feature
 import scipy.signal
 import h5py
 import lmfit
@@ -17,122 +18,145 @@ import lmfit
 def gaussian(x, amp, cen, wid, off):
     return amp * np.exp(-(x-cen)**2 / wid**2) + off
 
-kernel = astropy.convolution.Gaussian2DKernel(x_stddev=50)
 
 gmodel = lmfit.Model(gaussian)
 
 
-
+def PixelToAngle(pixel, size, dx, f):
+    angle = dx * (pixel - size/2)
+    return angle / f
 
 def QuickProcess(FileName, ImageMax=4095):
     """
     ImageMax defines what consititutes saturation
     """
 
-    with h5py.File(FileName, "a") as file:
-        image = file["image"][:]
-    
-    #
-    # High pass filter
-    # 
-    
-    
-    
-    image_conv = astropy.convolution.convolve_fft(image, kernel)
-    image = image-image_conv
-
-    
     # 100 mm focal lenght lens
     f = 0.1
     dx = 5.5e-6 # based on the CMV4000 NIR-enhanced
     dx_DMD = 7.637e-6 # based on DLP3000
-    shape = image.shape
-    xmin = -shape[0]/2 * dx
-    ymin = -shape[1]/2 * dx
-    
-    # Make angular scales
-    x_angle = np.linspace( xmin, xmin + shape[0] * dx, shape[0])
-    y_angle = np.linspace( ymin, ymin + shape[1] * dx, shape[1])
-    
-    x_angle = np.arctan2(x_angle, f)
-    y_angle = np.arctan2(y_angle, f)
-    
-    #
-    # Get X and y cuts of the central slice to define first fits (expecting one
-    # peak in y and maybe more than one in x)
-    #
-    
-    Y_Slice = image.mean(axis=1)
-    
-    #
-    # Estimate peak properties
-    #
-    
-    Y_peaks, stats = scipy.signal.find_peaks(Y_Slice, 
-                                           height=Y_Slice.max()/5,
-                                           width=1)
-    
-    #
-    # The peak closest to zero should be from the overall pixel structure
-    #
+    theta = 26 * np.pi / 180 # DMD beam angle
 
-    # keep three central peaks
-    indices = np.argsort(np.abs(y_angle[Y_peaks]))
+    data = {}
+    with h5py.File(FileName, "a") as file:
+        data['4a_4a'] = file["4a_4a"][:]
+        data['2a_2a'] = file["2a_2a"][:]
+        data['ones'] = file["ones"][:]
+        data['zeros'] = file["zeros"][:]
 
-    y_0_index = Y_peaks[indices[0]]
-    
-    y_angle -= y_angle[y_0_index]
+    shape = data['ones'].shape
+
+
     
     #
-    # First estimate of wavelength
+    # subtract ones (which is dark) from other frames
     # 
     
-    
-    
-    AngleCoarse = np.mean(np.abs(y_angle[Y_peaks[indices[1:3]]]))
-    print(4*np.sin(AngleCoarse)*dx_DMD/np.sqrt(2) )
+    kernel = astropy.convolution.Gaussian2DKernel(x_stddev=3)
+
+    image_conv = astropy.convolution.convolve(data['ones'], kernel)
+
+    kernel = astropy.convolution.Gaussian2DKernel(x_stddev=2)
+    data['4a_4a'] = data['4a_4a'] -image_conv
+    data['4a_4a'] = astropy.convolution.convolve(data['4a_4a'], kernel)
+    data['2a_2a'] = data['2a_2a'] -image_conv
+    data['2a_2a'] = astropy.convolution.convolve(data['2a_2a'], kernel)
+    data['zeros'] = data['zeros'] -image_conv
+    data['zeros'] = astropy.convolution.convolve(data['zeros'], kernel)
+
     
     #
-    # Do an X slice along the center discovered from the peak
+    # Begin with the 2a data with the goal of locating the grid of
+    # peaks
+    # 
+
+    image = data['2a_2a'] 
+
+
     #
-    
-    width = 32
-    position = y_0_index
-    CentralSlice = image[:][position-width:position+width]
-    y_angle_central = y_angle[position-width:position+width]
-    
-    X_Slice_central = CentralSlice.mean(axis=0)
-    Y_Slice_central = CentralSlice.mean(axis=1)
+    # Try scikit image
+    #
+
+    peaks = skimage.feature.peak_local_max(image, 
+                                   threshold_abs=image.max() / 50,
+                                   exclude_border=50,
+                                   min_distance=400)
 
     #
     # Fit the y curve
     #
     
-    params = lmfit.Parameters()
+    # params = lmfit.Parameters()
     
-    wid = (y_angle_central.max() - y_angle_central.min()) / 20
-    params.add('wid', value=wid, min=0, max=wid*10, vary=True)
+    # wid = (y_angle_central.max() - y_angle_central.min()) / 20
+    # params.add('wid', value=wid, min=0, max=wid*10, vary=True)
     
-    cen = y_angle_central[np.argmax(Y_Slice_central)]
-    params.add('cen', value=cen, min=cen-5*wid, max=cen+5*wid, vary=True)
+    # cen = y_angle_central[np.argmax(Y_Slice_central)]
+    # params.add('cen', value=cen, min=cen-5*wid, max=cen+5*wid, vary=True)
     
-    amp = Y_Slice_central.max()
-    params.add('amp', value=0.9*amp, min=0.1*amp, max=2*amp, vary=True)
+    # amp = Y_Slice_central.max()
+    # params.add('amp', value=0.9*amp, min=0.1*amp, max=2*amp, vary=True)
     
-    off = (Y_Slice_central[0:width//8].mean() + Y_Slice_central[-width//8:-1].mean()) / 2
-    params.add('off', value=off, vary=True)
+    # off = (Y_Slice_central[0:width//8].mean() + Y_Slice_central[-width//8:-1].mean()) / 2
+    # params.add('off', value=off, vary=True)
     
-    result = gmodel.fit(Y_Slice_central, params, x=y_angle_central)
+    # result = gmodel.fit(Y_Slice_central, params, x=y_angle_central)
+    
+    
+    angular_coords = PixelToAngle(peaks, np.array(shape), dx, f)
+    num_peaks = angular_coords.shape[0]
+    d = []
+    for i in range(num_peaks -1):
+        for j in range(i+1, num_peaks):
+            
+            delta = angular_coords[i,:]  - angular_coords[j,:] 
+            d.append (  np.sqrt(delta @ delta) )
+         
+
+    d = np.array(d)
+    keep = d < 1.2*d.min()
+    d = d[keep]
+    delta_d = d.std()
+    d = d.mean()
+    
+    
+    
+    #
+    # Estimate of wavelength from smallest spacing
+    # 
+    
+    # I divide d by sqrt(2) because my equations look at x and y 
+    # directions seperatly, not the diagional as computed above
+    # 
+    # There is a fudge factor of before the dx_DMD here.  And also in the 
+    # ewquation for d_angle
+    wavelength = (d / np.sqrt(2) )* (2*2*dx_DMD / np.sqrt(2))
+    print("Wavelength from small kick", wavelength, delta_d * (2*dx_DMD) )
+    
+    print("incident angle / Angle between two on-axes orders ", 
+          theta / (d*np.sqrt(2)) )
+    
+    # Now try to work out n+m for the peaks
+    
+    for angular_coord in angular_coords:
+        print("Looking at: ", angular_coord)
+        
+        # Compute the number of momentum
+        # kicks it should have received.
+        d_angle = (np.sin(theta) - angular_coord[1])
+        d_angle *= (2*2*dx_DMD/np.sqrt(2)) / wavelength
+        
+        print(d_angle)
+            
+            
+    
+    
+    # x_tan = 
+    
     
     results = {
-        'result': result,
-        'image': image,
-        'x_angle': x_angle,
-        'X_Slice_central': X_Slice_central,
-        'y_angle': y_angle,
-        'Y_Slice': Y_Slice,
-        'Y_peaks': Y_peaks,
-        'y_angle_central': y_angle_central
+        'data': data,
+        'peaks': peaks
     }
     
     return results
@@ -146,19 +170,13 @@ if __name__ == "__main__":
     
     results = QuickProcess('demo.h5')
     
-    fig = pyplot.figure(figsize=(12,6))
-    gs = fig.add_gridspec(1, 3)
+    fig = pyplot.figure(figsize=(6,8))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1,0.3])
     gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.15, hspace=0.5, wspace = 0.35)  
     
-    ax = fig.add_subplot(gs[0,0])
-    ax.imshow(results['image'])
+    ax = fig.add_subplot(gs[0,0:2])
+    ax.imshow(results['data']['2a_2a'])
+    ax.plot(results['peaks'][:, 1], 
+            results['peaks'][:, 0], 'ro', markersize=12, fillstyle='none')
     
-    ax = fig.add_subplot(gs[0,1])
-    ax.plot(results['x_angle'], results['X_Slice_central'])
-    
-    ax = fig.add_subplot(gs[0,2])
-    ax.plot(results['y_angle'], results['Y_Slice'])
-    ax.plot(results['y_angle'][results['Y_peaks']], results['Y_Slice'][results['Y_peaks']], ".")
-    
-    ax.plot(results['y_angle_central'], results['result'].best_fit, 'r-', label='best fit')
     
