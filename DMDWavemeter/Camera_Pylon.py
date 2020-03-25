@@ -6,11 +6,8 @@ Created on Tue Mar 24 08:01:11 2020
 @author: ispielma
 """
 
-import numpy as np
 import Camera_Generic
 from pypylon import pylon, genicam
-
-    
 
 class Camera(Camera_Generic.Camera):
     defaults = {
