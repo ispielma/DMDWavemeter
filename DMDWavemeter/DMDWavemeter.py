@@ -28,7 +28,8 @@ class LightCrafterWorker():
     WIDTH = 608
     HEIGHT = 684
     
-    BLANK = np.zeros((HEIGHT, WIDTH))
+    ZEROS = np.zeros((HEIGHT, WIDTH))
+    ONES = np.ones((HEIGHT, WIDTH))
     INDICES = np.meshgrid(np.arange(HEIGHT), np.arange(WIDTH), indexing='ij')
     XY_COORDS_ROT = (( 2*INDICES[1]+INDICES[0] + INDICES[0]%2)/2, 
                      (-2*INDICES[1]+INDICES[0] - INDICES[0]%2)/2 )
@@ -223,7 +224,7 @@ class WaveMeter():
         self.DMD = LightCrafterWorker(host=LightCrafterHost)
         self.Camera = Camera(Camera_serial)
 
-    def AcquireStandardFrame(self):
+    def AcquireStandardFrame(self, option=None):
         """
         Configure the DMD for a standard acquisition and grab a frame.
 
@@ -233,13 +234,21 @@ class WaveMeter():
 
         """
 
-        self.DMD.program_manual(self.DMD.GridPattern())
+    
+        if option=='ones':
+            pattern = self.DMD.ONES
+        elif option=='zeros':
+            pattern = self.DMD.ZEROS            
+        else:
+            pattern = self.DMD.GridPattern()
+            
+        self.DMD.program_manual(pattern)
         time.sleep(0.1)
         self.StandardFrame = Wave.Camera.snap()
         
         return self.StandardFrame
 
-    def SaveAll(self, filename):
+    def SaveAll(self, filename, name='StandardFrame'):
         """
         Sdaves the current full frame into an h5 file
 
@@ -255,7 +264,7 @@ class WaveMeter():
         """
         
         with h5py.File('demo.h5', "w") as file:
-             file.create_dataset("StandardFrame", data=self.StandardFrame)
+             file.create_dataset(name, data=self.StandardFrame)
 
 # Sample execution of wavemeter
 if __name__ == "__main__":
@@ -272,7 +281,12 @@ if __name__ == "__main__":
         
         image = Wave.AcquireStandardFrame()
         Wave.SaveAll('demo.h5')
-        
+
+        image = Wave.AcquireStandardFrame(option='ones')
+        Wave.SaveAll('demo.h5', name='ones')
+
+        image = Wave.AcquireStandardFrame(option='zeros')
+        Wave.SaveAll('demo.h5', name='zeros')   
         
 
     fig = pyplot.figure(figsize=(12,6))

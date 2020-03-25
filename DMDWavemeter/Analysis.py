@@ -11,7 +11,6 @@ typical data.
 import numpy as np
 import astropy.convolution
 import skimage.feature
-import scipy.signal
 import h5py
 import lmfit
 
@@ -39,8 +38,7 @@ def QuickProcess(FileName, ImageMax=4095):
 
     data = {}
     with h5py.File(FileName, "a") as file:
-        data['4a_4a'] = file["4a_4a"][:]
-        data['2a_2a'] = file["2a_2a"][:]
+        data['StandardFrame'] = file["StandardFrame"][:]
         data['ones'] = file["ones"][:]
         data['zeros'] = file["zeros"][:]
 
@@ -57,10 +55,9 @@ def QuickProcess(FileName, ImageMax=4095):
     image_conv = astropy.convolution.convolve(data['ones'], kernel)
 
     kernel = astropy.convolution.Gaussian2DKernel(x_stddev=2)
-    data['4a_4a'] = data['4a_4a'] -image_conv
-    data['4a_4a'] = astropy.convolution.convolve(data['4a_4a'], kernel)
-    data['2a_2a'] = data['2a_2a'] -image_conv
-    data['2a_2a'] = astropy.convolution.convolve(data['2a_2a'], kernel)
+
+    data['StandardFrame'] = data['StandardFrame'] -image_conv
+    data['StandardFrame'] = astropy.convolution.convolve(data['StandardFrame'], kernel)
     data['zeros'] = data['zeros'] -image_conv
     data['zeros'] = astropy.convolution.convolve(data['zeros'], kernel)
 
@@ -70,7 +67,7 @@ def QuickProcess(FileName, ImageMax=4095):
     # peaks
     # 
 
-    image = data['2a_2a'] 
+    image = data['StandardFrame'] 
 
 
     #
@@ -175,7 +172,7 @@ if __name__ == "__main__":
     gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.15, hspace=0.5, wspace = 0.35)  
     
     ax = fig.add_subplot(gs[0,0:2])
-    ax.imshow(results['data']['2a_2a'])
+    ax.imshow(results['data']['StandardFrame'])
     ax.plot(results['peaks'][:, 1], 
             results['peaks'][:, 0], 'ro', markersize=12, fillstyle='none')
     
