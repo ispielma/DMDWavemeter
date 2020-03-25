@@ -263,7 +263,7 @@ class WaveMeter():
 
         """
         
-        with h5py.File('demo.h5', "w") as file:
+        with h5py.File('demo.h5', "a") as file:
              file.create_dataset(name, data=self.StandardFrame)
 
 # Sample execution of wavemeter
