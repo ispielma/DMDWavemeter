@@ -20,9 +20,9 @@ class Camera(object):
 
         self._abort_acquisition = False
 
-    def set_attributes(self, attr_dict):
+    def set_attributes(self, attr_dict, **kwargs):
         for k, v in attr_dict.items():
-            self.set_attribute(k, v)
+            self.set_attribute(k, v, **kwargs)
 
     def set_attribute(self, name, value):
         """Set the value of the attribute of the given name to the given value"""
@@ -35,11 +35,11 @@ class Camera(object):
 
         return sorted(attributes)
 
-    def get_attributes(self, visibility_level, writeable_only=True):
+    def get_attributes(self, visibility_level, **kwargs):
         """Return a dict of all attribute names of readable attributes, for the given
         visibility level. Optionally return only writeable attributes"""
         
-        attributes = self.get_attribute_names(visibility_level, writeable_only=writeable_only)
+        attributes = self.get_attribute_names(visibility_level, **kwargs)
         
         return {k: self.get_attribute(k) for k in attributes}
         

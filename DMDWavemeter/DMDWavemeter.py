@@ -14,8 +14,9 @@ import struct
 import PIL.Image
 import numpy as np
 import io
-
 import socket    
+from Camera_Pylon import Camera
+
         
 class LightCrafterWorker():
 
@@ -201,13 +202,18 @@ class WaveMeter():
         return self
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.DMD.shutdown()
+        
+        try:
+            self.DMD.shutdown()
+        except:
+            print("DMD Shutdown Falied")
+            
         self.Camera.close()
     
-    def __init__(self, LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D):
+    def __init__(self, LightCrafterHost='192.168.1.100', Camera_serial=0x30531DC20D):
         
         self.DMD = LightCrafterWorker(host=LightCrafterHost)
-        self.Camera = IMAQdx_Camera(IMAQdx_serial)
+        self.Camera = Camera(Camera_serial)
 
 # Demonstrate field propogation
 if __name__ == "__main__":
@@ -217,20 +223,26 @@ if __name__ == "__main__":
     import matplotlib.pyplot as pyplot
     
     pyplot.style.use(path + '/matplotlibrc')
-
-    with WaveMeter(LightCrafterHost='192.168.1.100', IMAQdx_serial=0x30531DC20D) as Wave:
+    Camera_serial = 0x30531DC20D # for imaqdx bigboy
+    Camera_serial = 0x14eef0d # for pylon bigboy
+    
+    with WaveMeter(LightCrafterHost='192.168.1.100', Camera_serial=Camera_serial) as Wave:
         coords = Wave.DMD.XY_COORDS_ROT
         
         pattern = (1+np.cos(np.pi*coords[0])) / 2
         pattern += (1+np.cos(np.pi*coords[1])) / 2
         pattern /=2
-        Wave.DMD.program_manual(pattern)
+        
+        print('Patterning...')
+        Wave.DMD.program_manual(Wave.DMD.RandomPattern())
     
+        print('Sleeping...')
         time.sleep(1)
     
-        image = Wave.Camera.snap()
-        attributes = Wave.Camera.get_attributes('advanced', writeable_only=True)
-  
+        print('Snapping...')
+        image = Wave.Camera.snap()  
+        
+        print('Closing...')
 
     fig = pyplot.figure(figsize=(12,6))
     gs = fig.add_gridspec(1, 2)
