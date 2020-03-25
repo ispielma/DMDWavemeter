@@ -179,11 +179,6 @@ class LightCrafterWorker():
     #
     # Utility features
     # 
-
-    def RandomPattern(self, scale=0.5):
-        pattern = np.random.rand(self.HEIGHT, self.WIDTH)
-        
-        return self.ToBinary(pattern, scale=scale)
     
     def ToBinary(self, pattern, scale=0.5):
         ones = pattern > scale
@@ -193,6 +188,21 @@ class LightCrafterWorker():
         
         return pattern        
 
+    #
+    # Utility features
+    # 
+
+    def RandomPattern(self, scale=0.5):
+        pattern = np.random.rand(self.HEIGHT, self.WIDTH)
+        
+        return self.ToBinary(pattern, scale=scale)
+
+    def GridPattern(self, scale=0.5):
+        coords = self.XY_COORDS_ROT
+        pattern = (1+np.cos(np.pi*coords[0])) / 2
+        pattern += (1+np.cos(np.pi*coords[1])) / 2
+        pattern /=2      
+        return self.ToBinary(pattern)
 
 
 
@@ -215,7 +225,7 @@ class WaveMeter():
         self.DMD = LightCrafterWorker(host=LightCrafterHost)
         self.Camera = Camera(Camera_serial)
 
-# Demonstrate field propogation
+# Sample execution of wavemeter
 if __name__ == "__main__":
     import os
     path = os.path.realpath(__file__)
@@ -226,23 +236,14 @@ if __name__ == "__main__":
     Camera_serial = 0x30531DC20D # for imaqdx bigboy
     Camera_serial = 0x14eef0d # for pylon bigboy
     
-    with WaveMeter(LightCrafterHost='192.168.1.100', Camera_serial=Camera_serial) as Wave:
-        coords = Wave.DMD.XY_COORDS_ROT
+    with WaveMeter(LightCrafterHost='192.168.1.100', Camera_serial=Camera_serial) as Wave:        
         
-        pattern = (1+np.cos(np.pi*coords[0])) / 2
-        pattern += (1+np.cos(np.pi*coords[1])) / 2
-        pattern /=2
-        
-        print('Patterning...')
-        Wave.DMD.program_manual(Wave.DMD.RandomPattern())
+        Wave.DMD.program_manual(Wave.DMD.GridPattern())
     
-        print('Sleeping...')
         time.sleep(1)
     
-        print('Snapping...')
         image = Wave.Camera.snap()  
         
-        print('Closing...')
 
     fig = pyplot.figure(figsize=(12,6))
     gs = fig.add_gridspec(1, 2)
@@ -252,7 +253,7 @@ if __name__ == "__main__":
     ax.imshow(image)
     
     ax = fig.add_subplot(gs[0,1])
-    ax.imshow(pattern)
+    ax.imshow(Wave.DMD.GridPattern())
 
     
     
