@@ -130,8 +130,8 @@ def QuickProcess(FileName, ImageMax=4095):
     # 
     # There is a fudge factor of before the dx_DMD here.  And also in the 
     # ewquation for d_angle
-    wavelength = (d / np.sqrt(2) )* (2*2*dx_DMD / np.sqrt(2))
-    print("lambda = {:.3e} +- {:.2e}".format ( wavelength, delta_d * (2*dx_DMD) ) )
+    wavelength = d*dx_DMD
+    print("lambda = {:.3e} +- {:.2e}".format ( wavelength, delta_d * (dx_DMD) ) )
     
     print("incident angle / Angle between two on-axes orders ", 
           theta / (d*np.sqrt(2)) )
