@@ -41,7 +41,7 @@ class Camera(object):
         
         attributes = self.get_attribute_names(visibility_level, **kwargs)
         
-        return {k: self.get_attribute(k) for k in attributes}
+        return {k: self.get_attribute(k, **kwargs) for k in attributes}
         
     def get_attribute(self, name):
         """Return current value of attribute of the given name"""
