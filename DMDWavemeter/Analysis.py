@@ -31,10 +31,10 @@ def QuickProcess(FileName, ImageMax=4095):
     """
 
     # 100 mm focal lenght lens
-    f = 0.1
+    f = 0.1014
     dx = 5.5e-6 # based on the CMV4000 NIR-enhanced
     dx_DMD = 7.637e-6 # based on DLP3000
-    theta = 26 * np.pi / 180 # DMD beam angle
+    theta = (26.0) * np.pi / 180 # DMD beam angle, thought it was 26 degrees.
 
     data = {}
     with h5py.File(FileName, "a") as file:
@@ -44,6 +44,10 @@ def QuickProcess(FileName, ImageMax=4095):
 
     shape = data['ones'].shape
 
+    xvals = PixelToAngle(np.arange(shape[1]),shape[1], dx, f)
+    yvals = PixelToAngle(np.arange(shape[0]),shape[0], dx, f)
+
+    xyvals = np.meshgrid(xvals, yvals)
 
     
     #
@@ -60,7 +64,6 @@ def QuickProcess(FileName, ImageMax=4095):
     data['StandardFrame'] = astropy.convolution.convolve(data['StandardFrame'], kernel)
     data['zeros'] = data['zeros'] -image_conv
     data['zeros'] = astropy.convolution.convolve(data['zeros'], kernel)
-
     
     #
     # Begin with the 2a data with the goal of locating the grid of
@@ -128,7 +131,7 @@ def QuickProcess(FileName, ImageMax=4095):
     # There is a fudge factor of before the dx_DMD here.  And also in the 
     # ewquation for d_angle
     wavelength = (d / np.sqrt(2) )* (2*2*dx_DMD / np.sqrt(2))
-    print("Wavelength from small kick", wavelength, delta_d * (2*dx_DMD) )
+    print("lambda = {:.3e} +- {:.2e}".format ( wavelength, delta_d * (2*dx_DMD) ) )
     
     print("incident angle / Angle between two on-axes orders ", 
           theta / (d*np.sqrt(2)) )
@@ -138,22 +141,27 @@ def QuickProcess(FileName, ImageMax=4095):
     for angular_coord in angular_coords:
         print("Looking at: ", angular_coord)
         
-        # Compute the number of momentum
-        # kicks it should have received.
-        d_angle = (np.sin(theta) - angular_coord[1])
-        d_angle *= (2*2*dx_DMD/np.sqrt(2)) / wavelength
+        # Compute the number of momentum kicks it should have received.
+        d_angle = (np.sin(theta) - angular_coord[1]) 
+        d_angle /= (d / np.sqrt(2))
         
         print(d_angle)
             
-            
+    #
+    #Slices
+    # 
     
-    
-    # x_tan = 
-    
+    xslice = image[shape[0]//2 - 32:shape[0]//2 + 3,:].mean(axis=0)
+        
     
     results = {
         'data': data,
-        'peaks': peaks
+        'xslice': xslice,
+        'peaks': peaks,
+        'angular_coords': angular_coords,
+        'xyvals': xyvals,
+        'xvals': xvals,
+        'yvals': yvals
     }
     
     return results
@@ -165,15 +173,25 @@ if __name__ == "__main__":
     import matplotlib.pyplot as pyplot
     pyplot.style.use(path + '/matplotlibrc')
     
+        
     results = QuickProcess('demo.h5')
     
     fig = pyplot.figure(figsize=(6,8))
-    gs = fig.add_gridspec(2, 2, height_ratios=[1,0.3])
-    gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.15, hspace=0.5, wspace = 0.35)  
+    gs = fig.add_gridspec(2, 1, height_ratios=[1,0.3])
+    gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.15, hspace=0.2, wspace = 0.35)  
     
-    ax = fig.add_subplot(gs[0,0:2])
-    ax.imshow(results['data']['StandardFrame'])
-    ax.plot(results['peaks'][:, 1], 
-            results['peaks'][:, 0], 'ro', markersize=12, fillstyle='none')
+    ax = fig.add_subplot(gs[0,0])
+    ax.pcolormesh(
+        results['xyvals'][0],
+        results['xyvals'][1],
+        results['data']['StandardFrame']
+        )
+    ax.plot(results['angular_coords'][:, 1], 
+            results['angular_coords'][:, 0], 'ro', markersize=12, fillstyle='none')
+    
+    ax = fig.add_subplot(gs[1,0])
+    ax.plot(results['xvals'], results['xslice'])
+        
+
     
     
