@@ -239,6 +239,8 @@ class WaveMeter():
             pattern = self.DMD.ONES
         elif option=='zeros':
             pattern = self.DMD.ZEROS            
+        elif option=='random':
+            pattern = self.DMD.RandomPattern()  
         else:
             pattern = self.DMD.GridPattern()
             
@@ -263,8 +265,10 @@ class WaveMeter():
 
         """
         
-        with h5py.File('demo.h5', "a") as file:
-             file.create_dataset(name, data=self.StandardFrame)
+        with h5py.File(filename, "a") as file:
+             file.create_dataset(name, 
+                                 data=self.StandardFrame,
+                                 compression="gzip")
 
 # Sample execution of wavemeter
 if __name__ == "__main__":
@@ -276,28 +280,40 @@ if __name__ == "__main__":
     pyplot.style.use(path + '/matplotlibrc')
     Camera_serial = 0x30531DC20D # for imaqdx bigboy
     Camera_serial = 0x14eef0d # for pylon bigboy
+    FileName='data/2020_03_27_data_780_0008.h5'
     
     with WaveMeter(LightCrafterHost='192.168.1.100', Camera_serial=Camera_serial) as Wave:        
-        
-        image = Wave.AcquireStandardFrame()
-        Wave.SaveAll('demo.h5')
+    
 
         image = Wave.AcquireStandardFrame(option='ones')
-        Wave.SaveAll('demo.h5', name='ones')
+        Wave.SaveAll(FileName, name='ones')
 
         image = Wave.AcquireStandardFrame(option='zeros')
-        Wave.SaveAll('demo.h5', name='zeros')   
+        Wave.SaveAll(FileName, name='zeros')   
         
+        image = Wave.AcquireStandardFrame(option='random')
+        Wave.SaveAll(FileName, name='random')   
+        
+        image = Wave.AcquireStandardFrame()
+        Wave.SaveAll(FileName)
+
+    # subimage = image[1024-64:1024+64, 150-64:150+64]
+    # print(subimage.max() )
 
     fig = pyplot.figure(figsize=(12,6))
     gs = fig.add_gridspec(1, 2)
     gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.15, hspace=0.5, wspace = 0.35)  
 
+    
+
     ax = fig.add_subplot(gs[0,0])
-    ax.imshow(image)
+    ax.imshow(image, aspect='auto')
+    # ax.set_ylim([1024-128, 1024+128])
+    # ax.set_xlim([200-128, 200+128])
+    ax.axhline(1028)
     
     ax = fig.add_subplot(gs[0,1])
-    ax.imshow(Wave.DMD.GridPattern())
+    ax.plot(image.max(axis=0))
 
     
     
