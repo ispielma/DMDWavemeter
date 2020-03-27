@@ -34,7 +34,7 @@ def QuickProcess(FileName, ImageMax=4095):
     f = 0.1014
     dx = 5.5e-6 # based on the CMV4000 NIR-enhanced
     dx_DMD = 7.637e-6 # based on DLP3000
-    theta = (26.0) * np.pi / 180 # DMD beam angle, thought it was 26 degrees.
+    theta = (23) * np.pi / 180 # DMD beam angle, thought it was 26 degrees.  Docs say 24
 
     data = {}
     with h5py.File(FileName, "a") as file:
@@ -119,22 +119,18 @@ def QuickProcess(FileName, ImageMax=4095):
     delta_d = d.std()
     d = d.mean()
     
-    
-    
     #
     # Estimate of wavelength from smallest spacing
     # 
     
-    # I divide d by sqrt(2) because my equations look at x and y 
-    # directions seperatly, not the diagional as computed above
-    # 
-    # There is a fudge factor of before the dx_DMD here.  And also in the 
-    # ewquation for d_angle
-    wavelength = d*dx_DMD
-    print("lambda = {:.3e} +- {:.2e}".format ( wavelength, delta_d * (dx_DMD) ) )
+
+    # The factor of 2 here is from the fact that we are diffracting from a
+    # checkerboard pattern that doubles the DMD's period.
+    wavelength = d*dx_DMD*2
+    print("lambda = {:.3e} +- {:.2e}".format ( wavelength, 2*delta_d * (dx_DMD) ) )
     
-    print("incident angle / Angle between two on-axes orders ", 
-          theta / (d*np.sqrt(2)) )
+    print("sin(incident angle) / Angle between two on-axes orders ", 
+          np.sin(theta) / (d*np.sqrt(2)) )
     
     # Now try to work out n+m for the peaks
     
