@@ -10,6 +10,7 @@ import struct
 import PIL.Image
 import io
 import socket  
+import time
 
 class LightCrafterWorker():
 
@@ -194,3 +195,21 @@ class LightCrafterWorker():
         pattern += (1+np.cos(np.pi*coords[1])) / 2
         pattern /=2      
         return self.ToBinary(pattern)
+
+    def SetStandardFrame(self, option):
+
+        if option == 'ones':
+            pattern = self.ONES
+        elif option == 'zeros':
+            pattern = self.ZEROS
+        elif option == 'random':
+            pattern = self.RandomPattern()
+        else:
+            pattern = self.GridPattern()
+            
+        self.program_manual(pattern)
+        
+        return pattern
+        
+            
+              

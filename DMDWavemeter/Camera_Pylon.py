@@ -215,7 +215,7 @@ class Camera(Camera_Generic.Camera):
           'min': 36,
           'max': 512,
           'unit': ''},
-         'CameraAttributes::AutoFunctions::AutoTargetValue': {'value': 2048,
+         'CameraAttributes::AutoFunctions::AutoTargetValue': {'value': 800,
           'description': 'The target average gray value may range from nearly black to nearly white. Note that this range of gray values applies to 8 bit and to 16 bit (12 bit effective) output modes. Accordingly, also for 16 bit output modes, black is represented by 0 and white by 255.',
           'min': 800,
           'max': 3280,

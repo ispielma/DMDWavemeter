@@ -88,7 +88,7 @@ if __name__ == "__main__":
         # image = Wave.AcquireStandardFrame(option='ones')
         # Wave.SaveAll(FileName, name='ones')
 
-        # image = Wave.AcquireStandardFrame(option='ones')
+        # image = Wave.AcquireStandardFrame(option='zeros')
         # Wave.SaveAll(FileName, name='zeros')   
         
         # image = Wave.AcquireStandardFrame(option='random')
