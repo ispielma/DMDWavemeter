@@ -11,7 +11,8 @@ results containing information about the optical wavelength.
 # COMMON IMPORTS
 import time
 import h5py  
-from Camera_Pylon import Camera
+# from Camera_Pylon import Camera
+from Camera_IMAQdx import Camera
 
 from DMD_Lightcrafter import LightCrafterWorker
         
@@ -80,10 +81,10 @@ if __name__ == "__main__":
     
     pyplot.style.use(path + '/matplotlibrc')
     Camera_serial = 0x30531DC20D # for imaqdx bigboy
-    Camera_serial = 0x14eef0d # for pylon bigboy
+    # Camera_serial = 0x14eef0d # for pylon bigboy
     FileName='data/2020_03_27_data_780_0008.h5'
     
-    with WaveMeter(LightCrafterHost='192.168.1.100', Camera_serial=Camera_serial) as Wave:        
+    with WaveMeter(LightCrafterHost='192.168.2.100', Camera_serial=Camera_serial) as Wave:        
     
         # image = Wave.AcquireStandardFrame(option='ones')
         # Wave.SaveAll(FileName, name='ones')
