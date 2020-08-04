@@ -17,11 +17,10 @@ import lmfit
 DO_GAUSS = False
 
 # 100 mm focal lenght lens
-f = 0.101
+f = 0.10
 dx = 5.5e-6 # based on the CMV4000 NIR-enhanced
 dx_DMD = 7.637e-6 # based on DLP3000
-theta = (22.77) * np.pi / 180 # DMD beam angle, thought it was 26 degrees.  
-# Docs say 24, measured between 22.4 and 23.8
+theta = (77.6) * np.pi / 180 # DMD beam angle,
 
 
 def gaussian(x, amp, cen, wid, off):
@@ -68,7 +67,7 @@ def QuickProcess(FileName, ImageMax=4095, DoPlot=False):
 
     kernel = astropy.convolution.Gaussian2DKernel(x_stddev=2)
 
-    data['StandardFrame'] = data['StandardFrame'] -image_conv
+    # data['StandardFrame'] = data['StandardFrame'] -image_conv
     data['StandardFrame'] = astropy.convolution.convolve(data['StandardFrame'], kernel)
     data['zeros'] = data['zeros'] -image_conv
     data['zeros'] = astropy.convolution.convolve(data['zeros'], kernel)
@@ -87,11 +86,11 @@ def QuickProcess(FileName, ImageMax=4095, DoPlot=False):
     #
 
     peaks = skimage.feature.peak_local_max(image, 
-                                   threshold_abs=image.max() / 50,
+                                   threshold_abs=image.max() / 10,
                                    exclude_border=50,
-                                   min_distance=400)
+                                   min_distance=300)
     num_peaks = peaks.shape[0]
-    angular_coords = PixelToAngle(peaks, np.array(shape), dx, f)
+    angular_coords = PixelToAngle(peaks, np.array(shape), dx, f)    
     
     for j in range(num_peaks):
         angular_coord = angular_coords[j]
@@ -375,20 +374,8 @@ if __name__ == "__main__":
     # Analysis for typical grid.  First 87 line
     #
     
-    First87Results_4 = QuickProcess('data/2020_03_27_data_780_0004.h5', 
-                            DoPlot=False)
-    
-    First87Results_5 = QuickProcess('data/2020_03_27_data_780_0005.h5', 
-                            DoPlot=False)
-
-    First87Results_6 = QuickProcess('data/2020_03_27_data_780_0006.h5', 
-                            DoPlot=False)
-
-    First87Results_7 = QuickProcess('data/2020_03_27_data_780_0007.h5', 
-                            DoPlot=False)
-
-    First87Results_8 = QuickProcess('data/2020_03_27_data_780_0008.h5', 
-                            DoPlot=False)
+    First87Results_4 = QuickProcess('data/2020_08_03_data_780_0000.h5', 
+                            DoPlot=True)
 
 
     fig = pyplot.figure(0, figsize=(8,5))
@@ -396,7 +383,7 @@ if __name__ == "__main__":
     gs.update(left=0.13, right=0.95, top=0.92, bottom = 0.2, hspace=0.4, wspace = 0.35)  
     
     ax = fig.add_subplot(gs[0,0])
-    ax.plot(First87Results_4['xvals']*1e9, First87Results_4['xslice'], "o", color='r')
+    ax.plot(First87Results_4['xvals']*1e9, First87Results_4['xslice'], "-", color='r')
     # ax.plot(First87Results_5['xvals'], First87Results_5['xslice'], color='k')
     # ax.plot(First87Results_6['xvals'], First87Results_6['xslice'], color='b')
     # ax.plot(First87Results_7['xvals'], First87Results_7['xslice'], color='g')
@@ -404,6 +391,6 @@ if __name__ == "__main__":
     
     # ax.set_xlim([776, 782])
     ax.set_ylim([0, 1e3])
-    ax.set_xlabal('Wavelength (nm)')
+    ax.set_xlabel('Wavelength (nm)')
 
     
